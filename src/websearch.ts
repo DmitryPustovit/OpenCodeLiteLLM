@@ -17,6 +17,12 @@ import { getClient, getPluginSettings, type Client } from "./shared.ts"
 type SearchResult = { title?: string; url: string; snippet?: string }
 type SearchResponse = { results?: SearchResult[]; error?: { message?: string } }
 
+/** Results returned when the model does not ask for a count, matching opencode's built-in. */
+const DEFAULT_RESULTS = 8
+
+/** Ceiling on what the model may ask for. */
+const MAX_RESULTS = 25
+
 /** Longest snippet we return to agent, result should stays a couple of lines. */
 const SNIPPET_LIMIT = 400
 
@@ -73,13 +79,16 @@ export const websearch: Plugin = async (_input, settings = {}) => {
         ].join(" "),
         args: {
           query: tool.schema.string().describe("The search query"),
-          max_results: tool.schema
+          // Named to match opencode's built-in websearch, so a model that has
+          // used that tool calls this one correctly. LiteLLM's own field for
+          // the same thing is `max_results`.
+          numResults: tool.schema
             .number()
             .int()
             .min(1)
-            .max(25)
+            .max(MAX_RESULTS)
             .optional()
-            .describe("Maximum results to return (default 10)"),
+            .describe("Number of search results to return (default: 8)"),
         },
         async execute(args, ctx) {
           if (!client) {
@@ -102,7 +111,7 @@ export const websearch: Plugin = async (_input, settings = {}) => {
           }
 
           // Get the search results.
-          const results = (searchResponse.results ?? []).slice(0, args.max_results ?? 10)
+          const results = (searchResponse.results ?? []).slice(0, args.numResults ?? DEFAULT_RESULTS)
           if (!results.length) {
             return `No results for "${args.query}".`
           }
