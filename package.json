@@ -1,0 +1,19 @@
+{
+  "name": "opencode-litellm",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "index.ts",
+  "description": "opencode plugin: pull models from a LiteLLM proxy, and route websearch through LiteLLM's search tools",
+  "keywords": ["opencode", "opencode-plugin", "litellm", "searxng"],
+  "scripts": {
+    "test": "node --test src/*.test.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@opencode-ai/plugin": "^1.14.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.6.0"
+  }
+}
