@@ -97,10 +97,16 @@ export const websearch: Plugin = async (_input, settings = {}) => {
 
           ctx.metadata({ title: args.query, metadata: { query: args.query, provider: searchTool } })
 
+          const numResults = args.numResults ?? DEFAULT_RESULTS
+
           const res = await client(`/search/${searchTool}`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ query: args.query }),
+            // `max_results` is LiteLLM's name for numResults.
+            // SearXNG behind it ignores the field today, so the slice
+            // below is what actually holds us to the count — but asking
+            // is correct for other search backends.
+            body: JSON.stringify({ query: args.query, max_results: numResults }),
             signal: ctx.abort,
           })
 
@@ -111,7 +117,7 @@ export const websearch: Plugin = async (_input, settings = {}) => {
           }
 
           // Get the search results.
-          const results = (searchResponse.results ?? []).slice(0, args.numResults ?? DEFAULT_RESULTS)
+          const results = (searchResponse.results ?? []).slice(0, numResults)
           if (!results.length) {
             return `No results for "${args.query}".`
           }
