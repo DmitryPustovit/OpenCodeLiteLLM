@@ -78,20 +78,27 @@ tool registry is built before plugins evaluate.
 export OPENCODE_ENABLE_EXA=1
 ```
 
-Nothing should ever reaches Exa. The variable only unlocks the name. 
+Nothing should ever reach Exa. The variable only unlocks the name.
 This plugin supplies the implementation and a plugin tool sharing a built-in's name wins.
 
-Because it replaces the built-in tool, it does not go through the `websearch` permission gate.    
-Searches run without prompting even under `"permission": {"*": "ask"}`.  
-The custom-tool context has no ask mechanism.    
-TODO: This might be something to revist.
+Because this implementation does not call the custom-tool context's `ask`
+method, searches run without prompting even under
+`"permission": {"*": "ask"}`.
 
 ## Development
 
 ```bash
-npm install
+npm ci
 npm test        # node's built-in runner, no test dependencies
 npm run typecheck
+```
+
+On Windows PowerShell, use `npm.cmd` if the execution policy blocks `npm.ps1`:
+
+```powershell
+npm.cmd ci
+npm.cmd test
+npm.cmd run typecheck
 ```
 
 There is no build step. opencode ships as a Bun binary and loads `.ts` directly,
@@ -103,3 +110,32 @@ To run a local checkout instead of the published one:
 ```json
 "plugin": [["file:/absolute/path/to/opencode-litellm", { "exclusive": true }]]
 ```
+
+### Verify web search
+
+Open a new terminal after setting `OPENCODE_ENABLE_EXA`, then confirm OpenCode
+exposes the overridden tool:
+
+```powershell
+opencode debug agent build | Select-String 'websearch'
+```
+
+Run a distinctive search through OpenCode:
+
+```powershell
+opencode run "Use websearch to search for 'OpenCode LiteLLM SearXNG verification'."
+```
+
+Confirm the LiteLLM logs show a request such as
+`POST /v1/search/searxng`. No request should go to `mcp.exa.ai`.
+
+
+## TODO
+
+- Distinguish malformed JSON or an invalid `results` field from a legitimate
+  empty search result.
+- Add websearch-specific tests for request arguments, local result limiting,
+  malformed responses and non-2xx errors.
+- Support `content` or `description` when a provider omits `snippet`, and show
+  `source` or `engine` when available.
+- URL-encode the configured `searchTool` when constructing the request path.
